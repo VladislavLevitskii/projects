@@ -1,0 +1,297 @@
+# GitLab CI configuration
+#
+# Overall notes
+#  - Each milestone has its stage.
+#  - Optional parts of the milestone are marked with allow_failure so that
+#    the pipeline can continue (feel free to remove the allow_failure if you
+#    wish to pass the extra part).
+#  - Jobs inside a stage (one milestone) can have extra dependencies that
+#    skip advanced tests if base tests are failing (e.g. no need to test for
+#    %pF support in printk if base printk test failed).
+
+# Generic rules: do not re-run anything when adding a tag
+workflow:
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: always
+
+# Default configuration for individual jobs
+default:
+  image: registry.gitlab.com/mffd3s/nswi200/riscv32:latest
+  interruptible: true
+
+# Jobs in the same stage run in parallel, whole stage must pass before
+# next stage is started.
+stages:
+  - Style
+  - M01
+  - M02
+  - M03
+  - M04
+  - M05
+  - M06
+  - M07
+
+# Check C style of the code
+check-cstyle:
+  stage: Style
+  script:
+    - make check-cstyle
+
+# M01: base-m01 (Internal tests (required))
+base-m01:
+  stage: M01
+  needs: []
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m01-base.txt
+
+# M01: printk-base (Base printk tests (required))
+printk-base:
+  stage: M01
+  needs: [base-m01]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m01-printk-base.txt
+
+# M01: printk-list (printk extension %pL for lists (optional))
+printk-list:
+  stage: M01
+  needs: [printk-base]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m01-printk-list.txt
+
+# M01: printk-func (printk extension %pF for function (optional))
+printk-func:
+  stage: M01
+  needs: [printk-base]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m01-printk-func.txt
+
+# M01: function-dump (debug_dump_function implementation (optional))
+function-dump:
+  stage: M01
+  needs: [printk-base]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m01-function-dump.txt
+
+# M01: stackpointer (debug_get_stack_pointer implementation (optional))
+stackpointer:
+  stage: M01
+  needs: [printk-base]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m01-stackpointer.txt
+
+# M02: base-m02 (Internal tests (required))
+base-m02:
+  stage: M02
+  needs: []
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m02-base.txt
+
+# M02: heap-base (Base heap tests (required))
+heap-base:
+  stage: M02
+  needs: []
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m02-heap-base.txt
+
+# M02: heap-free (kfree heap tests (optional, 4 points))
+heap-free:
+  stage: M02
+  needs: [heap-base]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m02-heap-free.txt
+
+# M02: heap-coalesce (kfree with coalescing heap tests (optional, 7 points))
+heap-coalesce:
+  stage: M02
+  needs: [heap-base]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m02-heap-coalesce.txt
+
+# M03: base-m03 (Base thread tests (required))
+base-m03:
+  stage: M03
+  needs: []
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m03-base.txt
+
+# M03: thread-leaks (Thread functions do no leak memory (optional))
+thread-leaks:
+  stage: M03
+  needs: [base-m03]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m03-thread-leaks.txt
+
+# M03: thread-params (Thread return values and parameters (optional))
+thread-params:
+  stage: M03
+  needs: [base-m03]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m03-thread-params.txt
+
+# M04: base-m04 (Internal tests (required))
+base-m04:
+  stage: M04
+  needs: []
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m04-base.txt
+
+# M04: frame-base (Base frame allocator tests (required))
+frame-base:
+  stage: M04
+  needs: []
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m04-frame-base.txt
+
+# M04: frame-dynamic (Frame bitmap dynamically allocated (optional))
+frame-dynamic:
+  stage: M04
+  needs: [frame-base]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m04-frame-dynamic.txt
+
+# M04: frame-free (Tests for frame_free (optional))
+frame-free:
+  stage: M04
+  needs: [frame-base]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m04-frame-free.txt
+
+# M05: base-m05 (Base preemption tests (required))
+base-m05:
+  stage: M05
+  needs: []
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m05-base.txt
+
+# M05: thread-fairness (Thread scheduling fairness tests (optional))
+thread-fairness:
+  stage: M05
+  needs: [base-m05]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m05-thread-fairness.txt
+
+# M05: mutex (Base mutex tests (optional))
+mutex:
+  stage: M05
+  needs: [base-m05]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m05-mutex.txt
+
+# M05: mutex-try (Tests for mutex_try_lock (optional))
+mutex-try:
+  stage: M05
+  needs: [mutex]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m05-mutex-try.txt
+
+# M05: sem (Semaphore mutex tests (optional))
+sem:
+  stage: M05
+  needs: [base-m05]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m05-sem.txt
+
+# M05: sem-try (Tests for sem_try_lock (optional))
+sem-try:
+  stage: M05
+  needs: [sem]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m05-sem-try.txt
+
+# M06: base-m06 (Basic address space tests (required))
+base-m06:
+  stage: M06
+  needs: []
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m06-base.txt
+
+# M06: as-leaks (AS functions do no leak memory (optional))
+as-leaks:
+  stage: M06
+  needs: [base-m06]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m06-as-leaks.txt
+
+# M06: as-on-demand (Tests for on demand page allocation (optional))
+as-on-demand:
+  stage: M06
+  needs: [base-m06]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m06-as-on-demand.txt
+
+# M06: as-recycle (Tests for ASID recycling of destroyed AS (optional))
+as-recycle:
+  stage: M06
+  needs: [base-m06]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m06-as-recycle.txt
+
+# M06: as-steal (Tests for stealing ASIDs of active AS (optional))
+as-steal:
+  stage: M06
+  needs: [as-recycle]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m06-as-steal.txt
+
+# M07: base-m07 (Base userspace tests (required))
+base-m07:
+  stage: M07
+  needs: []
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m07-base.txt
+
+# M07: printf (Userspace printf (optional))
+printf:
+  stage: M07
+  needs: [base-m07]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m07-printf.txt
+
+# M07: procinfo (procinfo system call (optional))
+procinfo:
+  stage: M07
+  needs: [base-m07]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m07-procinfo.txt
+
+# M07: uheap (Userspace heap (optional))
+uheap:
+  stage: M07
+  needs: [procinfo]
+  allow_failure: false
+  script:
+    - ./tools/ci.sh suites/m07-uheap.txt
+

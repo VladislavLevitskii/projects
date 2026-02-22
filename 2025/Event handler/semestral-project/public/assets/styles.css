@@ -1,0 +1,80 @@
+body {
+    margin: 0;
+}
+
+.header_nav > ul {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  list-style: none;
+  background: #1a1a1a;
+  padding: 10px 40px;
+  margin: 0;
+}
+
+.header_nav > ul > li:first-child a {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: white;
+  gap: 15px;
+}
+
+.header_nav img {
+  height: 40px;
+}
+
+.header_right ul {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  gap: 20px;
+  margin: 0;
+}
+
+.header_right a {
+  color: #ccc;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.3s;
+}
+
+.header_right a:hover {
+  color: white;
+}
+
+.header_right ul li:nth-child(3) {
+  color: #888;
+  font-style: italic;
+  font-size: 0.85rem;
+  border-left: 1px solid #444;
+  padding-left: 15px;
+}
+
+.header_right ul li:nth-last-child(-n+2) a {
+  padding: 8px 16px;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+.header_right ul li:nth-last-child(2) a {
+  background: #444;
+  color: white;
+}
+
+.header_right ul li:last-child a {
+  background: #007bff;
+  color: white;
+}
+
+.header_right ul li:last-child a:hover {
+  background: #0056b3;
+}
+
+.event_image {
+    width: 150px;
+}
+
+h1 {
+    text-align: center;
+}
