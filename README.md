@@ -1,5 +1,6 @@
 # Projects
-Contains various personal and school projects of Vladislav Levitskii:
+
+Contains various personal and school projects (and future ones) of Vladislav Levitskii:
 
 2026:
   1. HelenOS on Raspberry Pi 3 - Bachelor thesis (WIP)
@@ -19,3 +20,11 @@ Contains various personal and school projects of Vladislav Levitskii:
 
 2023: 
   1. [Codepage](https://github.com/VladislavLevitskii/Codepage) - webpage - HTML and CSS
+
+## Note
+
+Probably not every project will be possible even to 
+build because of the some reasons like difficult 
+installation (ChramOS) or private data (like DB key 
+to event handler). But games (Preferans etc.) should 
+be possible to play.
