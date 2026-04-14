@@ -1,4 +1,0 @@
-# Tests for ASID recycling of destroyed AS (optional)
-kernel as/asidusage
-kernel as/recycle:ha32:m4096
-kernel as/recycle:ha128:m8192

@@ -1,3 +1,0 @@
-# Frame bitmap dynamically allocated (optional)
-kernel frame/dynamic:m1024
-kernel frame/dynamic:m4096
