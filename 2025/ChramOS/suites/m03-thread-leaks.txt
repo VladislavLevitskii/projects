@@ -1,2 +1,0 @@
-# Thread functions do no leak memory (optional)
-kernel thread/leaks

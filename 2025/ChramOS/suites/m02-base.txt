@@ -1,2 +1,0 @@
-# Internal tests (required)
-kernel adt/align

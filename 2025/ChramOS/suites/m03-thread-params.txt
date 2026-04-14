@@ -1,3 +1,0 @@
-# Thread return values and parameters (optional)
-kernel thread/params
-kernel thread/retvals

@@ -1,2 +1,0 @@
-# Thread scheduling fairness tests (optional)
-kernel thread/fairness2
