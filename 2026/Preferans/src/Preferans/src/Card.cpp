@@ -1,8 +1,7 @@
-#include "Card.h"
+#include "../include/Card.hpp"
 
 Card::Card(const int& val, const Suit& s, const sf::Texture* deckTex, const sf::Texture* backTex)
-    : value(val), suit(s), deckTexturePtr(deckTex), backTexturePtr(backTex) {
-
+    : CardBase(val, s), deckTexturePtr(deckTex), backTexturePtr(backTex) {
     if (deckTexturePtr) {
         const_cast<sf::Texture*>(deckTexturePtr)->setSmooth(true);
     }
@@ -37,7 +36,7 @@ bool Card::getHovered() const {
     return isHovered;
 }
 
-int Card::realValue(const Card& card) const {
+int Card::fakeValue(const Card& card) const {
     int suitValue = 0;
     switch (card.getSuit()) {
     case Suit::Spades:
@@ -51,6 +50,8 @@ int Card::realValue(const Card& card) const {
         break;
     case Suit::Hearts:
         suitValue = 1000;
+        break;
+    default:
         break;
     }
     return (suitValue * card.getValue());
@@ -66,7 +67,18 @@ void Card::setFront() {
         case Suit::Diamonds: row = 1; break;
         case Suit::Hearts: row = 2; break;
         case Suit::Spades: row = 3; break;
+        default: break;
         }
         sprite.setTextureRect(sf::IntRect(spriteIndex * CARD_WIDTH, row * CARD_HEIGHT, CARD_WIDTH, CARD_HEIGHT));
+    }
+}
+
+std::string suitToString(Suit s) {
+    switch (s) {
+        case Suit::Spades:   return "Spades";
+        case Suit::Clubs:    return "Clubs";
+        case Suit::Diamonds: return "Diamonds";
+        case Suit::Hearts:   return "Hearts";
+        default:             return "None";
     }
 }

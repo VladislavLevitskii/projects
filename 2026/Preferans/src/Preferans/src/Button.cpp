@@ -1,4 +1,4 @@
-#include "Button.h"
+#include "../include/Button.hpp"
 
 void Button::setSize(const sf::Vector2f& size) {
     shape.setSize(size);
@@ -32,8 +32,21 @@ bool Button::isHovered(const sf::RenderWindow& window) const {
     return shape.getGlobalBounds().contains((float)mp.x, (float)mp.y);
 }
 
-bool Button::isClicked(const sf::RenderWindow& window) const {
-    return isHovered(window) && sf::Mouse::isButtonPressed(sf::Mouse::Left);
+bool Button::isClicked(const sf::RenderWindow& window) {
+    static sf::Clock globalClock;
+    bool mouseOver = isHovered(window);
+    bool mousePressed = sf::Mouse::isButtonPressed(sf::Mouse::Left);
+
+    bool canClick = globalClock.getElapsedTime().asMilliseconds() > TIME_BETWEEN_CLICKS_BUTTON;
+
+    if (mouseOver && mousePressed && !lastTimePressed && canClick) {
+        globalClock.restart();
+        lastTimePressed = true;
+        return true;
+    }
+
+    lastTimePressed = mousePressed;
+    return false;
 }
 
 void Button::update(const sf::RenderWindow& window) {

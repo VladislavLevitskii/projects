@@ -2,8 +2,10 @@
 Contains various personal and school projects of Vladislav Levitskii:
 
 2026:
-  1. HelenOS on Raspberry Pi 3 (WIP)
-  2. [Preferans](./2026/Preferans/) - C++
+  1. HelenOS on Raspberry Pi 3 - Bachelor thesis (WIP)
+  2. Web crawler - PHP, TS, SQL, React (WIP)
+  3. Command Line Parser - C# (WIP)
+  4. [Preferans](./2026/Preferans/) - C++
 
 2025:
   1. [ChramOS](./2025/ChramOS/) - C (coauthor)
