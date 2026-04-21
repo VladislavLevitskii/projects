@@ -7,11 +7,11 @@ Preferans, featuring a 1v2 game against a Minimax-based AI.
 
 ## Documentation
 
-* **[User Documentation](../docs/user_documentation.md):** 
+* **[User Documentation](./docs/user_documentation.md):** 
 Installation instructions, core rules, game modes 
 (Contract, All Pass, Misere), and the scoring system.
 
-* **[Programmer Documentation](../docs/programmer_documentation.md):** 
+* **[Programmer Documentation](./docs/programmer_documentation.md):** 
 System architecture, OOP hierarchy, game state management, 
 and AI implementation details (Minimax, Alpha-Beta pruning,
 and bitwise move generation).
