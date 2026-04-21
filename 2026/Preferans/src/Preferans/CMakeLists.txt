@@ -7,10 +7,10 @@ endif()
 
 project("Preferans")
 
-add_executable(Preferans "Preferans.cpp" "Preferans.hpp" "src/Game.cpp" "src/Card.cpp" "include/Card.hpp" "src/Button.cpp" "include/Button.hpp" "src/Player.cpp" "include/Player.hpp" "src/UI.cpp" "include/UI.hpp"  "include/GameConfig.hpp" "src/BiddingGrid.cpp" "include/BiddingGrid.hpp")
+add_executable(Preferans "Preferans.cpp" "Preferans.hpp" "src/Game.cpp" "src/Card.cpp" "include/Card.hpp" "src/Button.cpp" "include/Button.hpp" "src/Player.cpp" "include/Player.hpp" "src/UI.cpp" "include/UI.hpp"  "include/GameConfig.hpp" "src/BiddingGrid.cpp" "include/BiddingGrid.hpp" "src/Minimax.cpp" "include/Minimax.hpp")
 
 if(CMAKE_VERSION VERSION_GREATER 3.14)
-  set_property(TARGET Preferans PROPERTY CXX_STANDARD 20)
+  set_property(TARGET Preferans PROPERTY CXX_STANDARD 23)
 endif()
 
 if(WIN32)

@@ -241,13 +241,12 @@ bool UI::drawSelectingRegimeBid(PlayerList& listOfPlayers, sf::RenderWindow& win
 }
 
 void UI::drawRegimes(PlayerList& listOfPlayers, sf::RenderWindow& window) {
-
     for (auto&& player : listOfPlayers) {
-        player->regimeDisplay.setString(gameTypeToString(player->playerWantedRegime, player->bidForContract));
+        player->gameModeDisplay.setString(gameTypeToString(player->playerWantedRegime, player->bidForContract));
     }
 
     for (auto&& player : listOfPlayers) {
-        window.draw(player->regimeDisplay);
+        window.draw(player->gameModeDisplay);
     }
 }
 

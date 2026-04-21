@@ -33,3 +33,12 @@ BiddingGrid::BiddingGrid() {
 		}
 	}
 }
+
+void BiddingGrid::setCurrentBidCoords(Bid bid) {
+	int l = bid.getValue() - START_BID;
+	int s = static_cast<int>(bid.getSuit()) - 1;
+
+	assert(l >= 0 && l < NUMBER_OF_LEVEL_BID && s >= 0 && s < NUMBER_OF_SUITS);
+
+	currentBidCoordinates = { l, s };
+}

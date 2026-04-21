@@ -1,28 +1,26 @@
 #include "../include/Game.hpp"
 
-Game::Game(sf::RenderWindow& win) :
-    window(win),
-    ui(win),
-    gameState(GameState::Menu),
-    difficulty(GameDifficulty::Easy),
-    dealt(false),
-    currentPlayerIdx(0),
-    talon(TALON_POSITION_FOR_CARDS),
-    discardPile(DISCARD_PILE_FOR_CARDS),
-    timeRestarted(false),
-    gameType(GameType::None),
-    calculatedTrump(false),
-    numberOfTrumpCardsAllPass(0),
-    numberOfTrumpCardsContract(0),
-    tookActionBidding(false),
-    finilizedBidding(false),
-    playingIdxContract(-1),
-    talonDistributed(false),
-    thrownCards(0),
-    finilizedMisere(false),
-    hasEveryoneChoosedRegime(false),
-    reseted(false)
-    {
+Game::Game(sf::RenderWindow& win) : window(win), ui(win) {
+    initResources();
+
+    for (int s = static_cast<int>(Suit::Spades); s <= static_cast<int>(Suit::Hearts); ++s) {
+        for (int v = 7; v <= 14; ++v) {
+            deck.emplace_back(v, static_cast<Suit>(s), &ui.deckTexture, &ui.backTexture);
+        }
+    }
+
+    listOfPlayers.push_back(std::make_unique<HumanPlayer>(PLAYER_POSITION_FOR_CARDS, PLAYER_POSITION_FOR_HANDS, PLAYER_POSITION_FOR_SCORE, PLAYER_POSITION_FOR_REGIME));
+    listOfPlayers.push_back(std::make_unique<AI>(AI1_POSITION_FOR_CARDS, AI1_POSITION_FOR_HANDS, 1, AI1_POSITION_FOR_SCORE, AI1_POSITION_FOR_REGIME));
+    listOfPlayers.push_back(std::make_unique<AI>(AI2_POSITION_FOR_CARDS, AI2_POSITION_FOR_HANDS, 2, AI2_POSITION_FOR_SCORE, AI2_POSITION_FOR_REGIME));
+
+    for (auto& player : listOfPlayers) {
+        player->initScoreDisplay(font);
+        player->initGameModeDisplay(font);
+        player->initIndicator(ui.handTexture);
+    }
+}
+
+void Game::initResources() {
     if (!ui.backTexture.loadFromFile("images/back.png")) {
         throw std::runtime_error("Failed to load backface texture: images/back.png");
     }
@@ -37,22 +35,6 @@ Game::Game(sf::RenderWindow& win) :
 
     if (!font.loadFromFile("fonts/CascadiaMono-Regular.ttf")) {
         throw std::runtime_error("Failed to load font: fonts/CascadiaMono-Regular.ttf");
-    }
-
-    for (int s = static_cast<int>(Suit::Spades); s <= static_cast<int>(Suit::Hearts); ++s) {
-        for (int v = 7; v <= 14; ++v) {
-            deck.emplace_back(v, static_cast<Suit>(s), &ui.deckTexture, &ui.backTexture);
-        }
-    }
-
-    listOfPlayers.push_back(std::make_unique<HumanPlayer>(PLAYER_POSITION_FOR_CARDS, PLAYER_POSITION_FOR_HANDS, PLAYER_POSITION_FOR_SCORE, PLAYER_POSITION_FOR_REGIME));
-    listOfPlayers.push_back(std::make_unique<AI>(AI1_POSITION_FOR_CARDS, AI1_POSITION_FOR_HANDS, 1, AI1_POSITION_FOR_SCORE, AI1_POSITION_FOR_REGIME));
-    listOfPlayers.push_back(std::make_unique<AI>(AI2_POSITION_FOR_CARDS, AI2_POSITION_FOR_HANDS, 2, AI2_POSITION_FOR_SCORE, AI2_POSITION_FOR_REGIME));
-
-    for (auto& player : listOfPlayers) {
-        player->initScoreDisplay(font);
-        player->initRegimesDisplay(font);
-        player->initIndicator(ui.handTexture);
     }
 }
 
@@ -156,18 +138,6 @@ bool Game::dealCards() {
     return true;
 }
 
-class CardComparator {
-public:
-    Suit trump;
-    CardComparator(Suit t) : trump(t) {}
-
-    bool operator()(const Card& a, const Card& b) const {
-        if (a.getSuit() != trump && b.getSuit() == trump) return true;
-        if (a.getSuit() == trump && b.getSuit() != trump) return false;
-        return a < b;
-    }
-};
-
 void Game::endRound(size_t indexMax) {
     discardPile.setCardsInvisible();
     ++listOfPlayers[indexMax].get()->tricks;
@@ -262,7 +232,7 @@ void Game::processAllPass() {
 
     if (currentPlayerIdx != 0) {
         Suit tmpTrump = trumpAllPass;
-        listOfPlayers[currentPlayerIdx].get()->makeMoveAllPass(difficulty, discardPile, trumpAllPass, gen, gameType);
+        listOfPlayers[currentPlayerIdx].get()->makeMoveAllPass(difficulty, discardPile, trumpAllPass, gen, gameType, *this);
         if (trumpAllPass != tmpTrump) {
             calculatedTrump = false;
         }
@@ -291,7 +261,7 @@ bool Game::everyoneChoosedRegime() {
 
 void Game::processBidding() {
     if (currentPlayerIdx != 0) {
-        listOfPlayers[currentPlayerIdx].get()->makeMoveBid(difficulty, discardPile, gen, biddingGrid);
+        listOfPlayers[currentPlayerIdx].get()->makeMoveBid(difficulty, discardPile, gen, biddingGrid, *this);
         passMove();
     } if (tookActionBidding) {
         passMove();
@@ -341,7 +311,7 @@ bool Game::processChoosingCards() {
     }
 
     if (playingIdxContract != 0) {
-        listOfPlayers[playingIdxContract].get()->makeFinalBid(difficulty, talon, gen, biddingGrid);
+        listOfPlayers[playingIdxContract].get()->makeFinalBid(difficulty, talon, gen, biddingGrid, *this);
         return true;
     } else {
         if (!talonDistributed) {
@@ -423,7 +393,7 @@ void Game::processContract() {
     }
 
     if (currentPlayerIdx != 0) {
-        listOfPlayers[currentPlayerIdx].get()->makeMoveContract(difficulty, discardPile, gen, biddingGrid, trumpAllPass, trumpContract, gameType);
+        listOfPlayers[currentPlayerIdx].get()->makeMoveContract(difficulty, discardPile, gen, biddingGrid, trumpAllPass, trumpContract, gameType, *this);
         passMove();
         return;
     }
@@ -475,7 +445,7 @@ void Game::processMisere() {
         }
 
         if (playingIdxContract != 0) {
-            listOfPlayers[playingIdxContract]->makeMoveMiserePrepare(difficulty, talon, gen);
+            listOfPlayers[playingIdxContract]->makeMoveMiserePrepare(difficulty, talon, gen, *this);
             finilizedMisere = true;
             return;
         }
@@ -511,7 +481,7 @@ void Game::processMisere() {
 
     if (currentPlayerIdx != 0) {
         Suit tmpTrump = trumpAllPass;
-        listOfPlayers[currentPlayerIdx].get()->makeMoveAllPass(difficulty, discardPile, trumpAllPass, gen, gameType);
+        listOfPlayers[currentPlayerIdx].get()->makeMoveAllPass(difficulty, discardPile, trumpAllPass, gen, gameType, *this);
         if (trumpAllPass != tmpTrump) {
             calculatedTrump = false;
         }
@@ -527,6 +497,55 @@ void Game::processMisere() {
     checkHoveringAllPass();
     checkCardClicked();
     iterateCardsAndPlay();
+}
+
+MiniGameState Game::exportForMinimax() const {
+    MiniGameState state;
+
+    for (const auto& c : listOfPlayers[0]->hand) state.humanHand.emplace_back(c.getValue(), c.getSuit());
+    for (const auto& c : listOfPlayers[1]->hand) state.ai1Hand.emplace_back(c.getValue(), c.getSuit());
+    for (const auto& c : listOfPlayers[2]->hand) state.ai2Hand.emplace_back(c.getValue(), c.getSuit());
+
+    state.tricksHuman = listOfPlayers[0]->tricks;
+    state.tricksAI1 = listOfPlayers[1]->tricks;
+    state.tricksAI2 = listOfPlayers[2]->tricks;
+
+    state.currentPlayerIdx = currentPlayerIdx;
+    state.round = round;
+    state.trumpAllPass = trumpAllPass;
+    state.trumpContract = trumpContract;
+    state.gameType = gameType;
+
+    for (size_t i = 0; i < discardPile.hand.size(); ++i) {
+        if (discardPile.hand[i].getVisible()) {
+            state.trickCards.emplace_back(discardPile.hand[i].getValue(), discardPile.hand[i].getSuit());
+            state.trickOwners.push_back(i);
+        }
+    }
+
+    return state;
+}
+
+void Game::resetGame() {
+    tookActionBidding = false;
+    gameType = GameType::None;
+    hasEveryoneChoosedRegime = false;
+    finilizedBidding = false;
+    finilizedMisere = false;
+    talonDistributed = false;
+    thrownCards = 0;
+    playingIdxContract = -1;
+    ui.isLockedGrid = false;
+    ui.loweredBid = false;
+
+    biddingGrid.setCurrentBidCoords(Bid(Suit::Spades, 6));
+
+    for (auto& player : listOfPlayers) {
+        player->playerWantedRegime = GameType::None;
+        player->bidForContract = Bid();
+        player->tricks = 0;
+    }
+    reseted = true;
 }
 
 void Game::update() {
@@ -561,23 +580,7 @@ void Game::update() {
 
     case GameState::End:
         if (!reseted) {
-            tookActionBidding = false;
-            gameType = GameType::None;
-            hasEveryoneChoosedRegime = false;
-            finilizedBidding = false;
-            finilizedMisere = false;
-            talonDistributed = false;
-            thrownCards = 0;
-            playingIdxContract = -1;
-            ui.isLockedGrid = false;
-            ui.loweredBid = false;
-
-            for (auto& player : listOfPlayers) {
-                player->playerWantedRegime = GameType::None;
-                player->bidForContract = Bid();
-                player->tricks = 0;
-            }
-            reseted = true;
+            resetGame();
         }
 
         break;

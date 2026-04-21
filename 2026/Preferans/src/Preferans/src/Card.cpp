@@ -20,7 +20,7 @@ void Card::draw(sf::RenderWindow& window) const {
     window.draw(sprite);
 }
 
-void Card::centerOrigin() {
+void Card::setCenterOrigin() {
     sf::FloatRect bounds = sprite.getLocalBounds();
     sprite.setOrigin(bounds.left + bounds.width / 2.f, bounds.top + bounds.height / 2.f);
 }
@@ -73,8 +73,8 @@ void Card::setFront() {
     }
 }
 
-std::string suitToString(Suit s) {
-    switch (s) {
+std::string suitToString(Suit suit) {
+    switch (suit) {
         case Suit::Spades:   return "Spades";
         case Suit::Clubs:    return "Clubs";
         case Suit::Diamonds: return "Diamonds";
