@@ -25,10 +25,10 @@ jobs:
 
       - name: Documentation generation
         run: |
-          cd project/docs
+          cd 2026/Preferans/docs
           doxygen Doxyfile
-          mkdir -p ../../public/preferans
-          mv html/* ../../public/preferans/
+          mkdir -p ../../../public/preferans
+          mv html/* ../../../public/preferans/
 
       - name: Configuring pages
         uses: actions/configure-pages@v4
