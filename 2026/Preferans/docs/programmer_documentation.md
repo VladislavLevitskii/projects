@@ -1,5 +1,49 @@
 # Programmer Documentation
 
+This documentation is for programmers who are willing
+to update/rework/fix this project and do not want to
+reverse-engineer the game.
+
+## Overview
+
+Since the real game itself has a lot of states Contract, 
+Misere and so on (detailed in the user documentation), 
+this project also implements this kind of state machine.
+
+The author tried to separate the core game logic from 
+other necessary components. In the source files, you will find: 
+
+- `Game.cpp`: with main logic of the game (e.g. different modes)
+- `UI.cpp`: you will find the components that are responsible
+for graphical interpretation of the game, such as fonts, 
+textures, buttons and so on. 
+- `Player.cpp`: is what drives the game, consists of 
+(legendary) C++ polymorphism and that is the boundary that 
+separates Human Player and AI.
+- `Minimax.cpp`: is the brain of the AI, calculates moves
+and tries to predict what is the best current move.
+- `BiddingGrid.cpp` and `Card.cpp`: are helper classes, 
+needed to decompose the game logic.
+
+More information is provided below.
+
+### Design decisions
+
+The author chose to use 2nd version of SFML because 
+it is easier to install on Linux distributions, 
+(for some reason, the packages include an older version).
+
+However, fetching using CMake is not possible due to 
+missing GUI libraries in those packages.
+
+Cheating: AI cheats, it means that AI sees every card on the table 
+and what is more important it plays only againts human player, 
+that is done for improving difficulty, otherwise it 
+would take much longer to calculate different
+outcomes and it would required smarter heuristics.
+
+Other small decisions are in the documentation below.
+
 ## Game Architecture
 
 The game is built in C++ using the SFML library for 
