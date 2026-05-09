@@ -1,0 +1,35 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "..",
+          "files": ["CommandLineParser/CommandLineParser.csproj"]
+        }
+      ],
+      "dest": "api"
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": ["api/**.yml"]
+      },
+      {
+        "src": "..",
+        "files": ["README.md"]
+      },
+      {
+        "files": ["toc.yml"]
+      }
+    ],
+    "resource": [
+      {
+        "src": "..",
+        "files": ["ExampleProject/src/Program.cs"]
+      }
+    ],
+    "dest": "../build/docs",
+    "template": ["default", "modern"]
+  }
+}
