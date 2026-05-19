@@ -1,0 +1,56 @@
+--- Hypothesis Test Results for Mirage ---
+Pro CT Winrate:    51.81% (from 230340 rounds)
+Casual CT Winrate: 49.35% (from 9209 rounds)
+Z-Statistic:       4.6209
+P-Value:           0.000004
+Conclusion: Reject the Null Hypothesis. (Significant difference)
+--------------------------------------------------
+--- Hypothesis Test Results for Inferno ---
+Pro CT Winrate:    49.11% (from 190327 rounds)
+Casual CT Winrate: 46.64% (from 3969 rounds)
+Z-Statistic:       3.0822
+P-Value:           0.002055
+Conclusion: Reject the Null Hypothesis. (Significant difference)
+--------------------------------------------------
+--- Hypothesis Test Results for Overpass ---
+Pro CT Winrate:    52.85% (from 142874 rounds)
+Casual CT Winrate: 48.94% (from 1943 rounds)
+Z-Statistic:       3.4243
+P-Value:           0.000616
+Conclusion: Reject the Null Hypothesis. (Significant difference)
+--------------------------------------------------
+--- Hypothesis Test Results for Nuke ---
+Pro CT Winrate:    54.90% (from 106663 rounds)
+Casual CT Winrate: 55.37% (from 363 rounds)
+Z-Statistic:       -0.1793
+P-Value:           0.857700
+Conclusion: Fail to reject the Null Hypothesis. (No significant difference)
+--------------------------------------------------
+--- Hypothesis Test Results for Vertigo ---
+Pro CT Winrate:    48.18% (from 15689 rounds)
+Casual CT Winrate: 53.42% (from 73 rounds)
+Z-Statistic:       -0.8947
+P-Value:           0.370967
+Conclusion: Fail to reject the Null Hypothesis. (No significant difference)
+--------------------------------------------------
+--- Hypothesis Test Results for Dust2 ---
+Pro CT Winrate:    48.43% (from 105094 rounds)
+Casual CT Winrate: 48.25% (from 7811 rounds)
+Z-Statistic:       0.3061
+P-Value:           0.759513
+Conclusion: Fail to reject the Null Hypothesis. (No significant difference)
+--------------------------------------------------
+--- Hypothesis Test Results for Train ---
+Pro CT Winrate:    54.23% (from 166242 rounds)
+Casual CT Winrate: 52.12% (from 921 rounds)
+Z-Statistic:       1.2812
+P-Value:           0.200134
+Conclusion: Fail to reject the Null Hypothesis. (No significant difference)
+--------------------------------------------------
+--- Hypothesis Test Results for Cache ---
+Pro CT Winrate:    47.40% (from 117397 rounds)
+Casual CT Winrate: 46.08% (from 6018 rounds)
+Z-Statistic:       2.0037
+P-Value:           0.045100
+Conclusion: Reject the Null Hypothesis. (Significant difference)
+--------------------------------------------------

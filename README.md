@@ -7,6 +7,7 @@ Contains various personal and school projects (and future ones) of Vladislav Lev
   2. Web crawler - PHP, TS, SQL, React (WIP)
   3. [Command Line Parser](./2026/CommandLineParser) - C# (coauthor)
   4. [Preferans](./2026/Preferans/) - C++
+  5. [Statistical project](./2026/Statistical_project/) - Python
 
 2025:
   1. [ChramOS](./2025/ChramOS/) - C (coauthor)
