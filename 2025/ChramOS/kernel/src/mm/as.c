@@ -9,6 +9,7 @@
 #include <mm/frame.h>
 #include <mm/heap.h>
 #include <mm/self.h>
+#include <proc/process.h>
 
 #define PROBE_JUMP_SIZE 1024
 #define PROBE_MAGIC_NUMBER 0x31415927
@@ -51,6 +52,7 @@ void as_release(thread_t* thread) {
 
     as->thread_count--;
     if (as->thread_count == 0) {
+        mutex_unlock(&as->as_mutex);
         as_destroy(as);
         return;
     }
@@ -104,10 +106,6 @@ static void dealloc_page_and_user_frames(uintptr_t root_table_phys) {
         if (!(root_pte & PTE_VALID))
             continue;
 
-        assert(!(root_pte & (PTE_READ | PTE_WRITE | PTE_EXECUTE)));
-
-        // there is l1 page
-
         uintptr_t l1_table_phys = PA_FROM_PTE(root_pte);
         for (size_t j = 0; j < PTE_COUNT; j++) {
             uint32_t l1_pte = PTE_AT_INDEX(l1_table_phys, j);
@@ -129,6 +127,20 @@ static void dealloc_page_and_user_frames(uintptr_t root_table_phys) {
     assert(root_err == EOK);
 }
 
+void as_set_page_flag(as_t* as, uintptr_t va, size_t add_flags) {
+    sv32_tlb_shootdown();
+    uintptr_t root_table = ROOT_TABLE_PHYS_FROM_SATP(as->satp_val);
+    size_t vpn1 = VPN1_FROM_VA(va);
+    size_t vpn0 = VPN0_FROM_VA(va);
+
+    uint32_t root_pte = PTE_AT_INDEX(root_table, vpn1);
+    assert((root_pte & PTE_VALID));
+
+    uintptr_t l1_table = PA_FROM_PTE(root_pte);
+
+    PTE_AT_INDEX(l1_table, vpn0) |= add_flags;
+}
+
 /** Create new address space of given size.
  *
  * The address space must start at address (PAGE_SIZE * PAGE_NULL_COUNT).
@@ -141,49 +153,14 @@ static void dealloc_page_and_user_frames(uintptr_t root_table_phys) {
 as_t* as_create(size_t size, unsigned int flags) {
     uintptr_t root_table_phys;
     errno_t err_root = frame_alloc(1, &root_table_phys);
-    if (err_root == ENOMEM)
+    if (err_root == ENOMEM) {
         return NULL;
+    }
 
     // alloc userspace
     {
         for (size_t i = 0; i < PTE_COUNT; i++) {
             PTE_AT_INDEX(root_table_phys, i) = 0;
-        }
-
-        size_t l1_ptes_count = size_align_up(size, FRAME_SIZE) / FRAME_SIZE + PAGE_NULL_COUNT;
-        size_t l0_ptes_count = size_align_up(l1_ptes_count, PTE_COUNT) / PTE_COUNT;
-
-        if (size == 0) {
-            l0_ptes_count = 0; // if no pages, skip loop
-        }
-
-        for (size_t i = 0; i < l0_ptes_count; i++) {
-            uintptr_t l1_table_phys;
-            errno_t err_l1 = frame_alloc(1, &l1_table_phys);
-            if (err_l1 == ENOMEM) {
-                dealloc_page_and_user_frames(root_table_phys);
-                return NULL;
-            }
-
-            size_t l0_flags = PTE_VALID | PTE_USER;
-            PTE_AT_INDEX(root_table_phys, i) = CREATE_PTE(l1_table_phys, l0_flags);
-
-            for (size_t j = 0; j < PTE_COUNT; j++) {
-                if (i == 0 && j < 2) {
-                    // skip null pages
-
-                    PTE_AT_INDEX(l1_table_phys, j) = 0;
-                } else if (i == l0_ptes_count - 1 && i * PTE_COUNT + j >= l1_ptes_count) {
-                    // beyond requested size
-
-                    PTE_AT_INDEX(l1_table_phys, j) = 0;
-                } else {
-                    // on-demand frame allocation
-
-                    size_t l1_flags = PTE_READ | PTE_WRITE | PTE_EXECUTE | PTE_USER | PTE_RSW0;
-                    PTE_AT_INDEX(l1_table_phys, j) = l1_flags;
-                }
-            }
         }
     }
 
@@ -204,7 +181,7 @@ as_t* as_create(size_t size, unsigned int flags) {
 
     // identity map printer
     {
-        size_t flags_printer = PTE_VALID | PTE_READ | PTE_WRITE | PTE_GLOBAL | PTE_EXECUTE;
+        size_t flags_printer = PTE_VALID | PTE_READ | PTE_WRITE | PTE_GLOBAL;
         identity_map_megapage_for_addr(PRINTER_ADDRESS, root_table_phys, flags_printer);
     }
 
@@ -220,18 +197,36 @@ as_t* as_create(size_t size, unsigned int flags) {
         identity_map_megapage_for_addr(APP_IMAGE_ADDRESS, root_table_phys, flags_app_image);
     }
 
-    uintptr_t asid = asid_acquire();
-    uintptr_t out_satp = CREATE_SATP(root_table_phys, asid);
-
-    as_t* result_virt = kmalloc(sizeof(as_t));
-    if (result_virt == NULL) {
+    vma_t* new_vma = kmalloc(sizeof(vma_t));
+    if (new_vma == NULL) {
         dealloc_page_and_user_frames(root_table_phys);
         return NULL;
     }
 
-    result_virt->size = size_align_up(size, FRAME_SIZE);
+    new_vma->start = PAGE_NULL_COUNT * PAGE_SIZE;
+    new_vma->offset = 0;
+    new_vma->size = size_align_up(size, FRAME_SIZE);
+    new_vma->number_pages = new_vma->size / FRAME_SIZE;
+
+    new_vma->disk_backed = false;
+
+    as_t* result_virt = kmalloc(sizeof(as_t));
+    if (result_virt == NULL) {
+        kfree(new_vma);
+        dealloc_page_and_user_frames(root_table_phys);
+        return NULL;
+    }
+
+    uintptr_t asid = asid_acquire();
+    uintptr_t out_satp = CREATE_SATP(root_table_phys, asid);
+
+    list_init(&result_virt->vma_list);
+    list_append(&result_virt->vma_list, &new_vma->link);
+
     result_virt->satp_val = out_satp;
     result_virt->thread_count = 0;
+    result_virt->size = new_vma->size;
+
     mutex_init(&result_virt->as_mutex);
     return result_virt;
 }
@@ -261,6 +256,12 @@ void as_destroy(as_t* as) {
 
     asid_release(asid);
 
+    while (!list_is_empty(&as->vma_list)) {
+        link_t* link = list_pop(&as->vma_list);
+        vma_t* vma = list_item(link, vma_t, link);
+        kfree(vma);
+    }
+
     dealloc_page_and_user_frames(root_table_addr_phys);
 
     kfree(as);
@@ -278,4 +279,64 @@ void as_destroy(as_t* as) {
  */
 uintptr_t as_get_root_page_table(as_t* as) {
     return ROOT_TABLE_PHYS_FROM_SATP(as->satp_val);
+}
+
+static uintptr_t find_free_vma_area(as_t* as, size_t size) {
+    uintptr_t search_ptr = 0x40000;
+    uintptr_t limit = 0x80000000;
+
+    list_foreach(as->vma_list, vma_t, link, vma) {
+        if (vma->start >= search_ptr + size) {
+            return search_ptr;
+        }
+
+        search_ptr = uintptr_align_up(vma->start + vma->size, FRAME_SIZE);
+    }
+
+    if (search_ptr + size <= limit) {
+        return search_ptr;
+    }
+
+    return 0;
+}
+
+errno_t as_mmap(as_t* as, uintptr_t* out_addr, size_t size, minix_inode_t* inode, size_t offset) {
+    if (as == NULL || out_addr == NULL || size == 0) {
+        return EINVAL;
+    }
+
+    size = size_align_up(size, FRAME_SIZE);
+
+    uintptr_t addr = find_free_vma_area(as, size);
+    if (addr == 0) {
+        return ENOMEM;
+    }
+
+    vma_t* new_vma = kmalloc(sizeof(vma_t));
+    if (new_vma == NULL) {
+        return ENOMEM;
+    }
+
+    new_vma->start = addr;
+    new_vma->size = size;
+    new_vma->offset = offset;
+    new_vma->number_pages = size / FRAME_SIZE;
+    new_vma->disk_backed = true;
+    new_vma->ino = *inode;
+
+    link_t* insert_after = &as->vma_list.head;
+
+    list_foreach(as->vma_list, vma_t, link, vma_it) {
+        if (vma_it->start > new_vma->start) {
+            break;
+        }
+        insert_after = &vma_it->link;
+    }
+
+    list_insert(insert_after, &new_vma->link);
+
+    as->size += size;
+    *out_addr = addr;
+
+    return EOK;
 }

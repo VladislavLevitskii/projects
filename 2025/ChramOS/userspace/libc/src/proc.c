@@ -24,3 +24,33 @@ bool np_proc_info_get(np_proc_info_t* info) {
     __SYSCALL4(SYSCALL_PROC_INFO_GET, (unative_t)&info->id, (unative_t)&info->total_ticks, (unative_t)&info->virt_mem_size, (unative_t)&valid);
     return valid;
 }
+
+/** Spawn a new process from an inode.
+ *
+ * Creates a new process by loading the specified executable file
+ * from a filesystem using its inode number.
+ *
+ * @param ino Inode number of an executable file
+ * @return Process ID on success
+ *         Negative error code on failure
+ */
+int process_spawn(uint16_t ino, pid_t* out_pid) {
+    volatile int err = -42;
+    __SYSCALL3(SYSCALL_SPAWN_PROCESS, (unative_t)ino, (unative_t)out_pid, (unative_t)&err);
+    return err;
+}
+
+/** Wait for a process to finish.
+ *
+ * Waits for the specified process to terminate and returns its exit status.
+ * This will block until the process exits.
+ *
+ * @param pid Process ID returned by spawn()
+ * @return Exit status of the process on success
+ *         Negative error code on failure
+ */
+int process_wait(pid_t pid, int* exit_code) {
+    volatile int err = -42;
+    __SYSCALL3(SYSCALL_WAIT_PROCESS, pid, (unative_t)exit_code, (unative_t)&err);
+    return err;
+}

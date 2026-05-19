@@ -50,3 +50,10 @@
     } while (0)
 
 #endif
+
+#define utest_spin(value) \
+    do { \
+        for (size_t i = 0; i < value; i++) { \
+            __asm__ volatile("nop"); \
+        } \
+    } while (0)

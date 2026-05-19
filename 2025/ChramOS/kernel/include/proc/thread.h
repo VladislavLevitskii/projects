@@ -24,6 +24,8 @@ typedef struct process process_t;
 /* Forward declaration to prevent cyclic header inclusions. */
 typedef struct as as_t;
 
+typedef struct vma vma_t;
+
 /** Thread entry function (similar to pthreads). */
 typedef void* (*thread_entry_func_t)(void*);
 

@@ -50,11 +50,19 @@
 /** Exception code for Supervisor Timer Interrupt */
 #define EXC_CODE_STI (RV_INTERRUPT_BIT | INTERRUPT_NUMBER_SUPERVISOR_TIMER_INTERRUPT)
 
+/** Interrupt number for Disk Interrupt */
+#define INTERRUPT_NUMBER_DISK_INTERRUPT 9
+
+/** Exception code for Disk Interrupt */
+#define EXC_CODE_DISK (RV_INTERRUPT_BIT | INTERRUPT_NUMBER_DISK_INTERRUPT)
+
 /** The bitmask for the STIE (supervisor timer interrupt enable) of the SIE (supervisor interrupt enable) CSR */
 #define CSR_SIE_STIE (1 << INTERRUPT_NUMBER_SUPERVISOR_TIMER_INTERRUPT)
 
 /** The bitmask for the STIE (supervisor timer interrupt enable) of the MIE (machine interrupt enable) CSR */
 #define CSR_MIE_STIE (CSR_SIE_STIE)
+
+#define CSR_MIDELEG_INTERRUPTS (CSR_SIE_STIE | (1 << INTERRUPT_NUMBER_DISK_INTERRUPT))
 
 /** Instruction page fault bitmask in MEDELEG (machine exception delegation) CSR */
 #define CSR_MEDELEG_IPF_MASK (1 << EXC_CODE_INSTRUCTION_PAGE_FAULT)

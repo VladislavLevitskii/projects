@@ -40,4 +40,11 @@ static inline const char* errno_as_str(errno_t err) {
     }
 }
 
+#define CHECK_NULL(ptr) \
+    do { \
+        if ((ptr) == NULL) { \
+            return ENOMEM; \
+        } \
+    } while (0)
+
 #endif

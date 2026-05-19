@@ -3,7 +3,9 @@
 
 #include <debug.h>
 #include <debug/code.h>
+#include <drivers/disk.h>
 #include <drivers/machine.h>
+#include <ipc/mqueue.h>
 #include <ktest.h>
 #include <lib/print.h>
 #include <main.h>
@@ -27,8 +29,15 @@ static void* init_thread(void* ignored) {
     kernel_test();
 #else
     printk("%s: Hello from kernel!\n", thread_get_current()->name);
+
+    minixfs_mount(minixfs_get_current());
+
+    uint16_t ino;
+    errno_t err = minixfs_lookup(minixfs_get_current(), MINIX_ROOT_INO, INIT_PROCESS_NAME, &ino);
+    panic_if(err != EOK, "Binary was not found (%d: %s)", err, errno_as_str(err));
+
     process_t* app;
-    errno_t err = process_create(&app, PROCESS_IMAGE_START, PROCESS_IMAGE_SIZE, PROCESS_MEMORY_SIZE);
+    err = process_spawn(&app, ino);
     panic_if(err != EOK, "userspace application launch failed (%d: %s)", err, errno_as_str(err));
 
     int exit_status;
@@ -59,6 +68,9 @@ void kernel_main(void) {
     as_init();
     scheduler_init();
     threads_init();
+    disk_init();
+    process_init();
+    mqueue_init();
 
     thread_t* main_thread;
     errno_t err = thread_create_new_as(&main_thread, init_thread, NULL, 0, "[INIT]", 0);

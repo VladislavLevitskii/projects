@@ -5,6 +5,7 @@
 #define _MM_AS_H
 
 #include <errno.h>
+#include <fs/minix.h>
 #include <proc/mutex.h>
 #include <types.h>
 
@@ -19,7 +20,7 @@
  * ASID numbers.
  */
 #ifndef HARDWARE_ASIDS_MAX
-#define HARDWARE_ASIDS_MAX 512
+#define HARDWARE_ASIDS_MAX 64
 #endif
 
 #define PAGE_SIZE 4096
@@ -63,14 +64,27 @@ typedef struct as {
     size_t size;
     unative_t satp_val;
     size_t thread_count;
+    list_t vma_list;
     mutex_t as_mutex;
 } as_t;
+
+typedef struct vma {
+    minix_inode_t ino;
+    link_t link;
+    size_t size;
+    size_t offset;
+    size_t number_pages;
+    uintptr_t start;
+    bool disk_backed;
+} vma_t;
 
 void as_init(void);
 as_t* as_create(size_t size, unsigned int flags);
 size_t as_get_size(as_t* as);
 void as_destroy(as_t* as);
 uintptr_t as_get_root_page_table(as_t* as);
+void as_set_page_flag(as_t* as, uintptr_t va, size_t add_flags);
+errno_t as_mmap(as_t* as, uintptr_t* out_addr, size_t size, minix_inode_t* inode, size_t offset);
 
 void as_acquire(thread_t* thread, as_t* as);
 void as_release(thread_t* thread);

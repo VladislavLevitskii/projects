@@ -7,6 +7,7 @@
 #include <proc/thread.h>
 
 extern thread_t* current_thread;
+extern list_t scheduler_list;
 
 void scheduler_init(void);
 void scheduler_add_ready_thread(thread_t* id);

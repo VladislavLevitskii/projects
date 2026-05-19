@@ -43,8 +43,8 @@ static errno_t thread_create_base(thread_t** thread_out, thread_entry_func_t ent
     uintptr_t thread_stack_start;
     errno_t err = frame_alloc(STACK_FRAME_COUNT, &thread_stack_start);
     if (err == ENOMEM) {
-        kfree(new_thread);
         as_release(new_thread);
+        kfree(new_thread);
         return ENOMEM;
     }
 

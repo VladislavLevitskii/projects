@@ -57,6 +57,12 @@ void scheduler_schedule_next(void) {
     bool saved = interrupts_disable();
     thread_t* new_thread;
 
+    while (list_is_empty(&scheduler_list)) {
+        interrupts_restore(true);
+        __asm__ volatile("wfi\n");
+        saved = interrupts_disable();
+    }
+
     if (current_thread == NULL) {
         new_thread = list_item(scheduler_list.head.next, thread_t, scheduler_link);
     } else if (current_thread->state != RUNNING) {

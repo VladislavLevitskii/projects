@@ -25,6 +25,15 @@ typedef enum {
     SYSCALL_PUTCHAR,
     SYSCALL_ASSERT,
     SYSCALL_PROC_INFO_GET,
+    SYSCALL_SPAWN_PROCESS,
+    SYSCALL_LOOKUP,
+    SYSCALL_WAIT_PROCESS,
+    SYSCALL_MMAP,
+    SYSCALL_MQ_LOOKUP,
+    SYSCALL_MQ_SEND,
+    SYSCALL_MQ_RECV,
+    SYSCALL_MQ_RECV_BLOCK,
+    SYSCALL_MQ_DESTROY,
     SYSCALL_LAST
 } syscall_t;
 
@@ -61,7 +70,7 @@ static inline unative_t __syscall(syscall_t id, unative_t p1, unative_t p2, unat
              * This is actually a function call though C compiler may
              * not realize that.
              */
-            : "ra");
+            : "ra", "memory");
 
     return reg_a0;
 }

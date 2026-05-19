@@ -4,7 +4,10 @@
 #ifndef _PROC_PROCESS_H
 #define _PROC_PROCESS_H
 
+#include <adt/list.h>
+#include <drivers/disk.h>
 #include <errno.h>
+#include <fs/minix.h>
 #include <mm/as.h>
 #include <mm/frame.h>
 #include <proc/thread.h>
@@ -39,19 +42,41 @@
 #error "Cannot give less memory than image size!"
 #endif
 
+/** Filename of the initial userspace process. */
+#define INIT_PROCESS_NAME "init.bin"
+
 #define APP_STACK_SIZE (2 * FRAME_SIZE)
 #define APP_STACK_TOP (4 * FRAME_SIZE)
 #define APP_CODE_START ((PAGE_NULL_COUNT * FRAME_SIZE) + APP_STACK_SIZE)
+
+extern list_t process_list;
+
+/** Process ID type. */
+typedef int pid_t;
 
 /** Information about existing process. */
 struct process {
     thread_t* user_thread;
     uintptr_t image_start;
     size_t image_size;
+
+    minix_inode_t ino;
+
+    mutex_t init_lock;
+
+    link_t link;
+
+    pid_t pid;
     size_t tick_count;
 };
 
+void process_init(void);
+
 errno_t process_create(process_t** process, uintptr_t image_location, size_t image_size, size_t process_memory_size);
 errno_t process_join(process_t* process, int* exit_status);
+errno_t process_spawn(process_t** process, uint16_t ino);
+
+process_t* process_get_by_pid(pid_t pid);
+int set_pid(void);
 
 #endif

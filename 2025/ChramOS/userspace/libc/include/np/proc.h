@@ -25,4 +25,9 @@ bool np_proc_info_get(np_proc_info_t* info);
 /** End of application code (see _kernel_end). */
 extern uint8_t _app_end[0];
 
+typedef int pid_t;
+
+int process_spawn(uint16_t ino, pid_t* out_pid);
+int process_wait(pid_t pid, int* exit_code);
+
 #endif
