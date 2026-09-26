@@ -4,7 +4,7 @@ Contains various personal and school projects (and future ones) of Vladislav Lev
 
 2026:
   1. HelenOS on Raspberry Pi 3 - Bachelor thesis (WIP)
-  2. Web crawler - PHP, TS, SQL, React (WIP)
+  2. [Web crawler](./2026/Sercado/) - Frontend React, Backend C# (coauthor)
   3. [Command Line Parser](./2026/CommandLineParser) - C# (coauthor)
   4. [Preferans](./2026/Preferans/) - C++
   5. [Statistical project](./2026/Statistical_project/) - Python

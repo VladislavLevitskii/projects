@@ -1,0 +1,48 @@
+services:
+    db:
+        build:
+            context: ./db
+            dockerfile: Dockerfile.db
+        ports:
+            - "${DB_PORT}:1433"
+        env_file:
+            - .env
+        environment:
+            - ACCEPT_EULA=Y
+            - MSSQL_SA_PASSWORD=${DB_PASSWORD}
+        volumes:
+            - mssql_data:/var/opt/mssql
+        healthcheck:
+            test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -d WebCrawlerDB -Q \"SELECT 1\" -b -o /dev/null || exit 1"]
+            interval: 5s
+            timeout: 5s
+            retries: 15
+            start_period: 15s
+
+    backend:
+        build: ./backend
+        ports:
+            - "${API_HOST_PORT}:8080"
+        env_file:
+            - .env
+        depends_on:
+            db:
+                condition: service_healthy
+    
+    frontend:
+        build: ./frontend
+        ports:
+            - "${FRONTEND_PORT:-5173}:80"
+        depends_on:
+            - backend
+
+    adminer:
+        image: adminer
+        ports:
+            - "8081:8080"
+        depends_on:
+            db:
+                condition: service_healthy
+
+volumes:
+    mssql_data:

@@ -1,0 +1,35 @@
+﻿{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:9000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DB_HOST": "localhost",
+        "DB_PORT_INTERNAL": "1433",
+        "DB_NAME": "WebCrawlerDB",
+        "DB_USER": "sa",
+        "DB_PASSWORD": "Password123",
+        "Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command": "None"
+      }
+    },
+    "https": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "https://localhost:9000;http://localhost:5293",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DB_HOST": "localhost",
+        "DB_PORT_INTERNAL": "1433",
+        "DB_NAME": "WebCrawlerDB",
+        "DB_USER": "sa",
+        "DB_PASSWORD": "Password123",
+        "Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command": "None"
+      }
+    }
+  }
+}

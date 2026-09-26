@@ -1,0 +1,4 @@
+# Use LF by default for all text files.
+* text=auto eol=lf
+# Use CRLF for CSV.
+*.csv eol=crlf

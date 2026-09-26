@@ -1,0 +1,12 @@
+################################################################################
+# Never commit compilation (by-)products and machine-specific settings.        #
+################################################################################
+
+bin
+obj
+.vscode
+.vs
+full_code.txt
+backend/Folder.DotSettings.user
+
+.idea/
