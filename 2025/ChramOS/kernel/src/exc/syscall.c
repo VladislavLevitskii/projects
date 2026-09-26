@@ -12,19 +12,19 @@
 #include <proc/process.h>
 #include <proc/thread.h>
 
-static void handle_proc_info_get(unative_t* id, size_t* total_tics, size_t* virt_mem_size, bool* valid) {
-    process_t* proc = thread_get_current()->owner_process;
+typedef struct mmap_args {
+    size_t size;
+    uint16_t ino;
+    uint32_t offset;
+} mmap_args_t;
 
-    if (id == NULL || (uintptr_t)virt_mem_size >= (PAGE_NULL_COUNT * PAGE_SIZE) + proc->image_size || (uintptr_t)id < PAGE_NULL_COUNT * PAGE_SIZE) {
-        // invalid pointers || points out of the application memory region || points to null page region
-        *valid = false;
-        return;
-    }
-    *id = (unative_t)proc;
-    *total_tics = ++proc->tick_count;
-    *virt_mem_size = thread_get_current()->as->size;
-    *valid = true;
-}
+#define REQUIRE_VALID_PTR(ptr, size) \
+    do { \
+        if (!pointer_in_vma((ptr), (size))) { \
+            thread_kill(thread_get_current()); \
+            return; \
+        } \
+    } while (0)
 
 /** Available system calls.
  *
@@ -47,6 +47,134 @@ typedef enum {
     SYSCALL_LAST
 } syscall_t;
 
+typedef void (*syscall_handler_t)(unative_t p1, unative_t p2, unative_t p3, unative_t p4);
+
+static void sys_exit(unative_t p1, unative_t p2, unative_t p3, unative_t p4) {
+    int* retval = kmalloc(sizeof(int));
+    if (retval == NULL) {
+        thread_kill(thread_get_current());
+        return;
+    }
+    *retval = (int)p1;
+    thread_finish(retval);
+}
+
+static void sys_putchar(unative_t p1, unative_t p2, unative_t p3, unative_t p4) {
+    printer_putchar((char)p1);
+}
+
+static void sys_assert(unative_t p1, unative_t p2, unative_t p3, unative_t p4) {
+    assert(p1);
+}
+
+static void sys_proc_info_get(unative_t p1, unative_t p2, unative_t p3, unative_t p4) {
+    REQUIRE_VALID_PTR(p4, sizeof(bool));
+
+    if (!pointer_in_vma(p1, sizeof(unative_t)) || !pointer_in_vma(p2, sizeof(size_t)) || !pointer_in_vma(p3, sizeof(size_t))) {
+        *(bool*)p4 = false;
+        return;
+    }
+
+    process_t* proc = thread_get_current()->owner_process;
+    *(unative_t*)p1 = (unative_t)proc;
+    *(size_t*)p2 = ++proc->tick_count;
+    *(size_t*)p3 = thread_get_current()->as->size;
+    *(bool*)p4 = true;
+}
+
+static void sys_spawn_process(unative_t p1, unative_t p2, unative_t p3, unative_t p4) {
+    REQUIRE_VALID_PTR(p2, sizeof(unative_t));
+    REQUIRE_VALID_PTR(p3, sizeof(unative_t));
+    errno_t err_spawn_process = 0;
+    process_t* process = kmalloc(sizeof(process_t));
+    err_spawn_process = process_spawn(&process, (uint16_t)p1);
+    *(unative_t*)p2 = process->pid;
+    *(unative_t*)p3 = err_spawn_process;
+}
+
+static void sys_lookup(unative_t p1, unative_t p2, unative_t p3, unative_t p4) {
+    REQUIRE_VALID_PTR(p1, 1);
+    REQUIRE_VALID_PTR(p2, sizeof(uint16_t));
+    REQUIRE_VALID_PTR(p3, sizeof(unative_t));
+
+    errno_t err_lookup = minixfs_lookup(minixfs_get_current(), MINIX_ROOT_INO, (const char*)p1, (uint16_t*)p2);
+    *(unative_t*)p3 = err_lookup;
+}
+
+static void sys_wait_process(unative_t p1, unative_t p2, unative_t p3, unative_t p4) {
+    REQUIRE_VALID_PTR(p2, sizeof(int));
+    REQUIRE_VALID_PTR(p3, sizeof(unative_t));
+
+    errno_t err_wait_process = 0;
+    pid_t wanted_pid = (pid_t)p1;
+    list_foreach(process_list, process_t, link, process) {
+        if (process->pid == wanted_pid) {
+            err_wait_process = process_join(process, (int*)p2);
+            *(unative_t*)p3 = err_wait_process;
+            return;
+        }
+    }
+
+    *(unative_t*)p3 = EINVAL;
+}
+
+static void sys_mmap(unative_t p1, unative_t p2, unative_t p3, unative_t p4) {
+    REQUIRE_VALID_PTR(p1, sizeof(mmap_args_t));
+    REQUIRE_VALID_PTR(p2, sizeof(uintptr_t));
+    REQUIRE_VALID_PTR(p3, sizeof(unative_t));
+    mmap_args_t* m_args = (mmap_args_t*)p1;
+
+    uintptr_t* out_addr = (uintptr_t*)p2;
+    unative_t* out_err = (unative_t*)p3;
+
+    minix_inode_t inode;
+    errno_t err = minixfs_read_inode(minixfs_get_current(), m_args->ino, &inode);
+
+    if (err == EOK) {
+        uintptr_t addr = 0;
+        err = as_mmap(thread_get_current()->as, &addr, m_args->size, &inode, m_args->offset);
+
+        if (err == EOK) {
+            *out_addr = addr;
+        }
+    }
+
+    *out_err = (unative_t)err;
+}
+
+static void sys_mq_lookup(unative_t p1, unative_t p2, unative_t p3, unative_t p4) {
+    REQUIRE_VALID_PTR(p4, sizeof(unative_t));
+    errno_t err = mq_lookup_or_create((fourcc_t)p1, (size_t)p2, (size_t)p3);
+    *(unative_t*)p4 = err;
+}
+
+static void sys_mq_recv(unative_t p1, unative_t p2, unative_t p3, unative_t p4) {
+    REQUIRE_VALID_PTR(p2, p3);
+    REQUIRE_VALID_PTR(p4, sizeof(unative_t));
+    errno_t err = mq_recv((fourcc_t)p1, (void*)p2, (size_t*)p3);
+    *(unative_t*)p4 = err;
+}
+
+static void sys_mq_recv_block(unative_t p1, unative_t p2, unative_t p3, unative_t p4) {
+    REQUIRE_VALID_PTR(p2, p3);
+    REQUIRE_VALID_PTR(p4, sizeof(unative_t));
+    errno_t err = mq_recv_blocking((fourcc_t)p1, (void*)p2, (size_t*)p3);
+    *(unative_t*)p4 = err;
+}
+
+static void sys_mq_send(unative_t p1, unative_t p2, unative_t p3, unative_t p4) {
+    REQUIRE_VALID_PTR(p2, p3);
+    REQUIRE_VALID_PTR(p4, sizeof(unative_t));
+    errno_t err = mq_send((fourcc_t)p1, (const void*)p2, (size_t)p3);
+    *(unative_t*)p4 = err;
+}
+
+static void sys_mq_destroy(unative_t p1, unative_t p2, unative_t p3, unative_t p4) {
+    REQUIRE_VALID_PTR(p2, sizeof(unative_t));
+    errno_t err = mq_destroy((fourcc_t)p1);
+    *(unative_t*)p2 = err;
+}
+
 /** Handles a syscall.
  *
  * The function receives a pointer to an exception context, which
@@ -54,122 +182,29 @@ typedef enum {
  * time of the syscall.
  */
 void handle_syscall(exc_context_t* exc_context) {
+    static const syscall_handler_t syscall_table[] = {
+        [SYSCALL_EXIT] = sys_exit,
+        [SYSCALL_PUTCHAR] = sys_putchar,
+        [SYSCALL_ASSERT] = sys_assert,
+        [SYSCALL_PROC_INFO_GET] = sys_proc_info_get,
+        [SYSCALL_SPAWN_PROCESS] = sys_spawn_process,
+        [SYSCALL_LOOKUP] = sys_lookup,
+        [SYSCALL_WAIT_PROCESS] = sys_wait_process,
+        [SYSCALL_MMAP] = sys_mmap,
+        [SYSCALL_MQ_LOOKUP] = sys_mq_lookup,
+        [SYSCALL_MQ_SEND] = sys_mq_send,
+        [SYSCALL_MQ_RECV] = sys_mq_recv,
+        [SYSCALL_MQ_RECV_BLOCK] = sys_mq_recv_block,
+        [SYSCALL_MQ_DESTROY] = sys_mq_destroy,
+    };
+
     syscall_t id = (syscall_t)exc_context->a0;
-    unative_t p1 = exc_context->a1;
-    unative_t p2 = exc_context->a2;
-    unative_t p3 = exc_context->a3;
-    unative_t p4 = exc_context->a4;
 
-    switch (id) {
-    case SYSCALL_EXIT:
-        int* retval = kmalloc(sizeof(int));
-        if (retval == NULL) {
-            // if we cannot allocate memory for retval, just kill the thread (we have more problems anyway)
-            thread_kill(thread_get_current());
-        }
-
-        *retval = (int)p1;
-        thread_finish(retval);
-        break;
-
-    case SYSCALL_PUTCHAR:
-        printer_putchar((char)p1);
-        break;
-
-    case SYSCALL_ASSERT:
-        assert(p1);
-        break;
-
-    case SYSCALL_PROC_INFO_GET:
-        handle_proc_info_get((unative_t*)p1, (size_t*)p2, (size_t*)p3, (bool*)p4);
-        break;
-
-    case SYSCALL_SPAWN_PROCESS:
-        errno_t err_spawn_process = 0;
-        process_t* process = kmalloc(sizeof(process_t));
-        err_spawn_process = process_spawn(&process, (uint16_t)p1);
-        *(unative_t*)p2 = process->pid;
-        *(unative_t*)p3 = err_spawn_process;
-        break;
-
-    case SYSCALL_LOOKUP:
-        errno_t err_lookup = minixfs_lookup(minixfs_get_current(), MINIX_ROOT_INO, (const char*)p1, (uint16_t*)p2);
-        *(unative_t*)p3 = err_lookup;
-        break;
-
-    case SYSCALL_WAIT_PROCESS:
-        errno_t err_wait_process = 0;
-        pid_t wanted_pid = (pid_t)p1;
-        list_foreach(process_list, process_t, link, process) {
-            if (process->pid == wanted_pid) {
-                err_wait_process = process_join(process, (int*)p2);
-                *(unative_t*)p3 = err_wait_process;
-                goto end;
-                break;
-            }
-        }
-
-        // invalid PID
-        *(unative_t*)p3 = EINVAL;
-        break;
-
-    case SYSCALL_MMAP:
-        struct mmap_args {
-            size_t size;
-            uint16_t ino;
-            uint32_t offset;
-        }* m_args = (struct mmap_args*)p1;
-
-        uintptr_t* out_addr = (uintptr_t*)p2;
-        unative_t* out_err = (unative_t*)p3;
-
-        minix_inode_t inode;
-        errno_t err = minixfs_read_inode(minixfs_get_current(), m_args->ino, &inode);
-
-        if (err == EOK) {
-            uintptr_t addr = 0;
-            err = as_mmap(thread_get_current()->as, &addr, m_args->size, &inode, m_args->offset);
-
-            if (err == EOK) {
-                *out_addr = addr;
-            }
-        }
-
-        *out_err = (unative_t)err;
-        break;
-
-    case SYSCALL_MQ_LOOKUP: {
-        errno_t err;
-        err = mq_lookup_or_create((fourcc_t)p1, (size_t)p2, (size_t)p3);
-        *(unative_t*)p4 = err;
-    } break;
-    case SYSCALL_MQ_RECV: {
-        errno_t err;
-        err = mq_recv((fourcc_t)p1, (void*)p2, (size_t*)p3);
-        *(unative_t*)p4 = err;
-    } break;
-    case SYSCALL_MQ_RECV_BLOCK: {
-        errno_t err;
-        err = mq_recv_blocking((fourcc_t)p1, (void*)p2, (size_t*)p3);
-        *(unative_t*)p4 = err;
-    } break;
-    case SYSCALL_MQ_SEND: {
-        errno_t err;
-        err = mq_send((fourcc_t)p1, (const void*)p2, (size_t)p3);
-        *(unative_t*)p4 = err;
-    } break;
-    case SYSCALL_MQ_DESTROY: {
-        errno_t err;
-        err = mq_destroy((fourcc_t)p1);
-        *(unative_t*)p2 = err;
-    } break;
-
-    default:
+    if (id >= SYSCALL_LAST || syscall_table[id] == NULL) {
         panic("Unknown syscall");
-        break;
     }
 
-end:
+    syscall_table[id](exc_context->a1, exc_context->a2, exc_context->a3, exc_context->a4);
 
     // On success, shift EPC by 4 to resume execution of the interrupted
     // thread on the next instruction (we don't want to restart it).

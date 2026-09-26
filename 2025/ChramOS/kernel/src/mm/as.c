@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2019 Charles University
 
+#include "adt/list.h"
+#include "lib/print.h"
+#include "proc/thread.h"
+#include "types.h"
 #include <adt/bitmap.h>
 #include <drivers/printer.h>
 #include <drivers/sv32.h>
 #include <exc.h>
+#include <fs/minix.h>
 #include <mm/as.h>
 #include <mm/frame.h>
 #include <mm/heap.h>
@@ -22,6 +27,114 @@ size_t last_asid = 0;
 uint8_t asids_bitmap_data[HARDWARE_ASIDS_MAX / 8];
 
 _Static_assert(HARDWARE_ASIDS_MAX % 8 == 0);
+
+bool pointer_in_vma(unative_t pointer, size_t size) {
+    list_foreach(thread_get_current()->as->vma_list, vma_t, link, vma) {
+        unative_t vma_start = vma->start;
+        unative_t vma_end = vma->start + vma->size;
+        if (pointer >= vma_start && pointer + size < vma_end) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static vma_t* find_vma_for_address(as_t* as, unative_t fault_addr) {
+    list_foreach(as->vma_list, vma_t, link, vma) {
+        if (fault_addr >= vma->start && fault_addr < vma->start + vma->size) {
+            return vma;
+        }
+    }
+    return NULL;
+}
+
+static uintptr_t get_or_allocate_l1_table(uintptr_t root_table_phys, size_t vpn1) {
+    uint32_t root_pte = PTE_AT_INDEX(root_table_phys, vpn1);
+
+    if (!(root_pte & PTE_VALID)) {
+        uintptr_t new_l1_phys;
+        if (frame_alloc(1, &new_l1_phys) != EOK) {
+            return 0;
+        }
+
+        empty_buffer((void*)new_l1_phys, FRAME_SIZE);
+
+        PTE_AT_INDEX(root_table_phys, vpn1) = CREATE_PTE(new_l1_phys, PTE_VALID | PTE_USER);
+        root_pte = PTE_AT_INDEX(root_table_phys, vpn1);
+    }
+
+    return PA_FROM_PTE(root_pte);
+}
+
+static uintptr_t allocate_and_fill_frame(vma_t* valid_vma, unative_t fault_addr) {
+    uintptr_t frame_phys = 0;
+    if (frame_alloc(1, &frame_phys) != EOK) {
+        return 0;
+    }
+
+    empty_buffer((void*)frame_phys, FRAME_SIZE);
+
+    if (valid_vma->disk_backed) {
+        uintptr_t faulting_page_va = fault_addr & ~(FRAME_SIZE - 1);
+        size_t offset_ve_vma = faulting_page_va - valid_vma->start;
+        size_t file_offset = valid_vma->offset + offset_ve_vma;
+
+        size_t bytes_to_read = FRAME_SIZE;
+        if (file_offset >= valid_vma->ino.i_size) {
+            bytes_to_read = 0;
+        } else if (file_offset + bytes_to_read > valid_vma->ino.i_size) {
+            bytes_to_read = valid_vma->ino.i_size - file_offset;
+        }
+
+        void* kernel_dst_ptr = (void*)frame_phys;
+        size_t actually_read = 0;
+
+        if (bytes_to_read > 0) {
+            minixfs_read_file(minixfs_get_current(),
+                    &valid_vma->ino,
+                    kernel_dst_ptr,
+                    file_offset,
+                    bytes_to_read,
+                    &actually_read);
+        }
+
+        if (actually_read < FRAME_SIZE) {
+            empty_buffer((void*)((uintptr_t)kernel_dst_ptr + actually_read), FRAME_SIZE - actually_read);
+        }
+    }
+
+    return frame_phys;
+}
+
+/**
+ * Handle page fault from exc.c.
+ * @return EOK if pages were able to create.
+ */
+errno_t as_handle_page_fault(as_t* as, unative_t fault_addr) {
+    vma_t* valid_vma = find_vma_for_address(as, fault_addr);
+    if (valid_vma == NULL) {
+        return ENOENT; // Adresa neleží v žádné alokované paměti (VMA)
+    }
+
+    uintptr_t root_table_phys = ROOT_TABLE_PHYS_FROM_SATP(as->satp_val);
+    size_t vpn1 = VPN1_FROM_VA(fault_addr);
+
+    uintptr_t l1_table_phys = get_or_allocate_l1_table(root_table_phys, vpn1);
+    if (l1_table_phys == 0) {
+        return ENOMEM;
+    }
+
+    uintptr_t frame_phys = allocate_and_fill_frame(valid_vma, fault_addr);
+    if (frame_phys == 0) {
+        return ENOMEM;
+    }
+
+    size_t vpn0 = VPN0_FROM_VA(fault_addr);
+    uint32_t new_l1_pte = CREATE_PTE(frame_phys, PTE_VALID | PTE_USER | PTE_READ | PTE_WRITE | PTE_EXECUTE);
+    PTE_AT_INDEX(l1_table_phys, vpn0) = new_l1_pte;
+
+    return EOK;
+}
 
 /** Initializes support for address spaces.
  *

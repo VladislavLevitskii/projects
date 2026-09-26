@@ -85,6 +85,8 @@ void as_destroy(as_t* as);
 uintptr_t as_get_root_page_table(as_t* as);
 void as_set_page_flag(as_t* as, uintptr_t va, size_t add_flags);
 errno_t as_mmap(as_t* as, uintptr_t* out_addr, size_t size, minix_inode_t* inode, size_t offset);
+bool pointer_in_vma(unative_t pointer, size_t size);
+errno_t as_handle_page_fault(as_t* as, unative_t fault_addr);
 
 void as_acquire(thread_t* thread, as_t* as);
 void as_release(thread_t* thread);
