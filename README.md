@@ -35,6 +35,11 @@ Contains various personal and school projects (and future ones) of Vladislav Lev
    - platform driver of HelenOS onto RPi3 SoC
    - optional: support of USB, Ethernet, Video and SMP
    - estimated time: mid 2027
+  
+5. HomeAssistant integration of Papouch devices and I/O library for communication
+   - my work in [Papouch s.r.o.](https://papouch.com/)
+   - Python
+   - state: completed but untested in production (🙂) and waiting on PR
 
 ## 2026:
   1. [Web crawler](./2026/Sercado/) - Frontend React, Backend C# (coauthor)
