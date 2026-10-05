@@ -6,35 +6,35 @@ Contains various personal and school projects (and future ones) of Vladislav Lev
 
 - projects content will probably change
 
-  0. Own domain specific language
-     - AOT (obviously), close to C but with its own syntax without transpilation
-     - using Flex, Bison and LLVM
-     - main goal: create a language that is using only some primitive strcutures of C but adding keywords that have meaning only in context of that controller (e.g. pin, register, ...)
-     - simple way: create only frontend
-     - hard way: create both frondend and backend
-     - estimated time: 2028-2029
+0. Own domain specific language
+   - AOT (obviously), close to C but with its own syntax without transpilation
+   - using Flex, Bison and LLVM
+   - main goal: create a language that is using only some primitive strcutures of C but adding keywords that have meaning only in context of that controller (e.g. pin, register, ...)
+   - simple way: create only frontend
+   - hard way: create both frondend and backend
+   - estimated time: 2028-2029
 
-  2. ChramOS on RPi3B+
-     - port existing ChramOS (MSIM) to ARM architecture and add support for RPi
-     - optional: separate genarch and arch code
-     - estimated time: 2028
-    
-  3. Temperature Monitor
-     - microcontroller (either MSP430, some ATmega or STM32) that fetches temperature from DS temp sensor
-     - and display that temperature on a display
-         - optional: adding some state machine with buttons to work with the data (max, min, mean, average...)
-     - should be written **only in assembly**
-     - estimated time: mid 2027
+1. ChramOS on RPi3B+
+   - port existing ChramOS (MSIM) to ARM architecture and add support for RPi
+   - optional: separate genarch and arch code
+   - estimated time: 2028
+  
+2. Temperature Monitor
+   - microcontroller (either MSP430, some ATmega or STM32) that fetches temperature from DS temp sensor
+   - and display that temperature on a display
+       - optional: adding some state machine with buttons to work with the data (max, min, mean, average...)
+   - should be written **only in assembly**
+   - estimated time: mid 2027
 
-  4. CPU simulator of MSP430 MCU
-     - should be written in C#
-     - decide if ATmega with Hardvard Architecture isn't more interesting
-     - estimated time: late 2026 - early 2027
+3. CPU simulator of MSP430 MCU
+   - should be written in C#
+   - decide if ATmega with Hardvard Architecture isn't more interesting
+   - estimated time: late 2026 - early 2027
 
-  5. Bachelor Thesis (highest priority)
-     - platform driver of HelenOS onto RPi3 SoC
-     - optional: support of USB, Ethernet, Video and SMP
-     - estimated time: mid 2027
+4. Bachelor Thesis (highest priority)
+   - platform driver of HelenOS onto RPi3 SoC
+   - optional: support of USB, Ethernet, Video and SMP
+   - estimated time: mid 2027
 
 ## 2026:
   1. [Web crawler](./2026/Sercado/) - Frontend React, Backend C# (coauthor)
