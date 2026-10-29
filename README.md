@@ -4,16 +4,6 @@ Contains various personal and school projects (and future ones) of Vladislav Lev
 
 ## Future projects:
 
-- projects content will probably change
-
-0. Own domain specific language
-   - AOT (obviously), close to C but with its own syntax without transpilation
-   - using Flex, Bison and LLVM
-   - main goal: create a language that is using only some primitive strcutures of C but adding keywords that have meaning only in context of that controller (e.g. pin, register, ...)
-   - simple way: create only frontend
-   - hard way: create both frondend and backend
-   - estimated time: 2028-2029
-
 1. ChramOS on RPi3B+
    - port existing ChramOS (MSIM) to ARM architecture and add support for RPi
    - optional: separate genarch and arch code
